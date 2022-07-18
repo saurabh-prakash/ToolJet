@@ -1,0 +1,53 @@
+version: 2.0
+nodeVersion: 14.17.3
+tier: medium
+smartRun: false
+postMerge:
+  preRun:
+     env:
+       FORCE_COLOR: true
+       NODE_OPTIONS: "--max-old-space-size=8096"
+       LOCKBOX_MASTER_KEY: lockbox-master-key
+       SECRET_KEY_BASE: secrret-key-base
+       PG_HOST: localhost
+       PG_PORT: 5432
+       PG_USER: postgres
+       PG_PASS: postgres
+       PG_DB: tooljet_test
+       POSTGRES_PASSWORD: postgres
+       NODE_ENV: test
+     command:
+        - npm i -g npm@7.20.0
+        - npm --prefix plugins install
+        - npm --prefix plugins run create:client && npm --prefix plugins run create:server
+        - npm --prefix plugins run build:packages && npm --prefix plugins run build:server
+        - npm --prefix server install
+  subModules:
+      - name: unit-tests      
+        path : "./server"
+        smartRun: false
+        pattern: 
+          - "./test/**/*.ts"
+        framework : jest
+        runPreRunEveryTime: true
+        preRun:
+          env:
+            FORCE_COLOR: true
+            NODE_OPTIONS: "--max-old-space-size=8096"
+            LOCKBOX_MASTER_KEY: lockbox-master-key
+            SECRET_KEY_BASE: secrret-key-base
+            PG_HOST: localhost
+            PG_PORT: 5432
+            PG_USER: postgres
+            PG_PASS: postgres
+            PG_DB: tooljet_test
+            POSTGRES_PASSWORD: postgres
+            NODE_ENV: test
+          command:
+            - apt update && apt install postgresql-13 -y
+            - /etc/init.d/postgresql start
+            - su -c "psql -c \"ALTER USER postgres PASSWORD 'postgres';\"" postgres
+            - npm install
+            - npm run db:create
+            - npm run db:migrate
+        configFile : "./jest.config.ts"
